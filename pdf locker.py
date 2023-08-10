@@ -1,76 +1,67 @@
-import tkinter as tk
-from tkinter import filedialog
-from tkinter import messagebox
 import os
-import PyPDF2
-
-output_folder = "locked_pdfs"
+import openpyxl
+from PyPDF2 import PdfReader, PdfWriter
+import tkinter as tk
+from tkinter import filedialog, messagebox
 
 def lock_pdf(input_path, output_path, password):
-    with open(input_path, 'rb') as input_file:
-        pdf_reader = PyPDF2.PdfReader(input_file)
-        pdf_writer = PyPDF2.PdfWriter()
+    reader = PdfReader(input_path)
+    writer = PdfWriter()
 
-        for page_num in range(len(pdf_reader.pages)):
-            pdf_writer.add_page(pdf_reader.pages[page_num])
+    for page in reader.pages:
+        writer.add_page(page)
 
-        pdf_writer.encrypt(password)
+    writer.encrypt(password)
+    with open(output_path, "wb") as output_file:
+        writer.write(output_file)
 
-        with open(output_path, 'wb') as output_file:
-            pdf_writer.write(output_file)
+def execute_locking():
+    # Ask the user to select a folder
+    folder_path = filedialog.askdirectory(title="Select Folder with PDF Files")
 
-def exec_lock():
-    input_folder = folderinput
-    password = password_entry.get()
+    # Ask the user to select the Excel file containing passwords
+    excel_path = filedialog.askopenfilename(title="Select Excel File with Passwords")
 
-    for filename in os.listdir(input_folder):
+    # Load passwords from Excel in alphabetic ascending order
+    workbook = openpyxl.load_workbook(excel_path)
+    sheet = workbook.active
+    passwords = [str(cell.value) for cell in sheet['A'] if cell.value is not None]
+    passwords.sort()  # Sort passwords in ascending order
+
+    # Create a new folder for locked files inside the chosen folder
+    output_folder = os.path.join(folder_path, "locked_files")
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Process PDF files in the selected folder
+    for filename in os.listdir(folder_path):
         if filename.endswith(".pdf"):
-            input_path = os.path.join(input_folder, filename)
-            output_subfolder = os.path.join(input_folder, output_folder)  # New subfolder path
-            os.makedirs(output_subfolder, exist_ok=True)  # Create subfolder if not exists
-            output_path = os.path.join(output_subfolder, filename)
+            input_path = os.path.join(folder_path, filename)
+            output_path = os.path.join(output_folder, filename)
+            password = passwords.pop(0) if passwords else ""  # Use the next password or an empty string
             lock_pdf(input_path, output_path, password)
-            print(f"Locked: {filename}")
+            print(f"Locked: {filename} with Password: {password}")
 
-    messagebox.showinfo("Information", "Done.")
+    print("PDF locking completed.")
+    messagebox.showinfo("Process Complete", "PDF locking process is complete.")
 
-def browse_folder():
-    global folderinput
-    folder_path = filedialog.askdirectory()
-    if folder_path:
-        folder_path_label.config(text=folder_path)
-        folderinput = folder_path
-        submit_button.pack()  # Show the submit button when folder is picked
-
-def password_changed(*args):
-    if folderinput and password_entry.get():
-        submit_button.pack()  # Show the submit button when both folder and password are filled
-    else:
-        submit_button.pack_forget()  # Hide the submit button
 
 root = tk.Tk()
-root.title("PDF Locker By Yusuf Giovanno")
+root.title("PDF Locker")
 
-folderinput = ""
+window_width = 200
+window_height = 100
+root.geometry(f"{window_width}x{window_height}")
 
-label = tk.Label(root, text="Select a Folder:")
+label = tk.Label(root, text="PDF Locker By Yusuf Giovanno")
 label.pack()
 
-browse_button = tk.Button(root, text="Browse", command=browse_folder)
-browse_button.pack()
+execute_button = tk.Button(root, text="Execute", command=execute_locking)
+execute_button.pack()
 
-folder_path_label = tk.Label(root, text="Folder File PDF:")
-folder_path_label.pack()
+labelfooter = tk.Label(root, text="PDSI - Deepublish 2023")
+labelfooter.pack()
 
-password_label = tk.Label(root, text="Enter Password:")
-password_label.pack()
-
-password_var = tk.StringVar()
-password_var.trace_add("write", password_changed)  # Call password_changed when password is written
-
-password_entry = tk.Entry(root, textvariable=password_var)
-password_entry.pack()
-
-submit_button = tk.Button(root, text="Lock PDF(s)", command=exec_lock)
+labelfooter = tk.Label(root, text="Created By : Yusuf Giovanno")
+labelfooter.pack()
 
 root.mainloop()
