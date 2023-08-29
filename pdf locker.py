@@ -26,7 +26,7 @@ def execute_locking():
     workbook = openpyxl.load_workbook(excel_path)
     sheet = workbook.active
     passwords = [str(cell.value) for cell in sheet['A'] if cell.value is not None]
-    passwords.sort()  # Sort passwords in ascending order
+    #passwords.sort()  # Sort passwords in ascending order
 
     # Create a new folder for locked files inside the chosen folder
     output_folder = os.path.join(folder_path, "locked_files")
